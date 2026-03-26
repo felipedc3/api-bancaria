@@ -1,0 +1,25 @@
+[project]
+name = "api-bancaria"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Felipe Vieira",email = "felipedc.dev@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi (>=0.135.2,<0.136.0)",
+    "uvicorn[standard] (>=0.42.0,<0.43.0)",
+    "sqlalchemy (>=2.0.48,<3.0.0)",
+    "aiosqlite (>=0.22.1,<0.23.0)",
+    "python-jose[cryptography] (>=3.5.0,<4.0.0)",
+    "passlib[bcrypt] (>=1.7.4,<2.0.0)",
+    "python-multipart (>=0.0.22,<0.0.23)"
+]
+
+[tool.poetry]
+packages = [{include = "api_bancaria", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
