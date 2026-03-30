@@ -4,7 +4,7 @@ Define as tabelas da aplicação e seus relacionamentos usando SQLAlchemy.
 Cada classe representa uma tabela no banco de dados.
 """
 
-import enum
+from app.db.enums import TransactionType
 from sqlalchemy import Column, Integer, String, Float, Enum as SAEnum, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -12,14 +12,6 @@ from app.db.database import Base
 from app.core.utils import get_current_time
 
 
-class TranscriptionType(enum.Enum):
-    """
-    Enumeração dos tipos de transação possíveis.
-    Usar um Enum em vez de strings livres garante que apenas valores
-    válidos sejam salvos no banco, evitando inconsistências nos dados.
-    """
-    deposito = "deposito"
-    saque = "saque"
 
 class User(Base):
     """
