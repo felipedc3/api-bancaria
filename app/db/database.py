@@ -4,8 +4,8 @@ Responsável por criar a conexão assíncrona com o banco, fornecer sessões
 para as operações e disponibilizar a classe Base para os modelos de tabela.
 """
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 
 from app.core.config import settings
 
@@ -18,7 +18,7 @@ engine = create_async_engine(settings.DATABASE_URL, echo=True)
 # IMPORTANTE: Em produção, echo deve ser False para não expor informações sensíveis nos logs.
 
 
-AsyncSessionLocal = sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False
@@ -34,7 +34,7 @@ Base = declarative_base()
 # Ao herdar de Base, o SQLAlchemy reconhece a classe como uma tabela
 # do banco de dados e gerencia sua criação e mapeamento automaticamente.
 
-async def git_db():
+async def get_db():
     """
     Função de injeção de dependência do FastAPI para o banco de dados.
     Abre uma sessão, a entrega para o endpoint utilizar e garante que
