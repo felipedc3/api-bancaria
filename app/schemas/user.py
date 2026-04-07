@@ -30,4 +30,16 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
 
-    model_config = {"from_attributes": True}        
+    model_config = {"from_attributes": True} 
+
+class LoginUser(BaseModel):
+    """
+    Schema de entrada para autenticação do usuário.
+    Separado do CreateUser pois o login não precisa do nome,
+    apenas das credenciais de acesso: email e senha.
+    Ter schemas específicos para cada operação evita que campos
+    desnecessários sejam exigidos ou expostos na requisição.
+    """
+
+    email: EmailStr
+    password: str       

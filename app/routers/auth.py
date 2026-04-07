@@ -31,6 +31,7 @@ async def register(user_data: CreateUser, db: AsyncSession = Depends(get_db)):
 
     # Verifica se já existe um usuário com esse email no banco.
     result = await db.execute(select(User).where(User.email == user_data.email))
+    
     # scalar_one_or_none() retorna o usuário encontrado ou None caso não exista.
     # É mais seguro que scalar_one() pois não lança exceção quando não há resultado.
     existing_user = result.scalar_one_or_none()
@@ -49,13 +50,19 @@ async def register(user_data: CreateUser, db: AsyncSession = Depends(get_db)):
         hashed_password = hash_password(user_data.password)
     )
     db.add(new_user)
+    
     await db.flush()
-
     # Cria automaticamente uma conta corrente para o novo usuário.
     # O flush() acima garante que o new_user já tem um id gerado
     # pelo banco antes de criar a conta vinculada a ele.
+
     new_account = Account(user_data = new_user.id)
     db.add(new_account)
+
+
+    # O commit() confirma todas as operações pendentes no banco de uma vez.
+    # O refresh() atualiza o objeto new_user com os dados mais recentes do banco,
+    # como o id gerado, necessário para montar a resposta corretamente.    
     await db.commit()
     await db.refresh(new_user)
 
@@ -76,6 +83,7 @@ async def login(user_data: CreateUser, db: AsyncSession = Depends(get_db)):
 
     # Usamos a mesma mensagem de erro para email e senha inválidos
     # intencionalmente, para não revelar se o email existe ou não no sistema.
+    # evitando que atacantes usem o endpoint para descobrir emails cadastrados.
     if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -84,6 +92,8 @@ async def login(user_data: CreateUser, db: AsyncSession = Depends(get_db)):
 
 
     # Gera o token JWT com o email do usuário como identificador.
+    # O campo "sub" (subject) é uma convenção do padrão JWT para
+    # identificar o dono do token.    
     access_token = create_access_token(data={"sub": user.email})
 
     return {"access_token": access_token, "token_type": "bearer"}
