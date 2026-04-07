@@ -8,7 +8,15 @@ Responsável por duas funções essenciais de segurança:
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from app.core.config import settings
+from app.db.database import get_db
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 """
@@ -73,3 +81,48 @@ def decode_access_token(token: str) -> dict | None:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=settings.ALGORITHM)
     except JWTError:
         return None
+    
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# Define o endpoint onde o token será obtido.
+# O OAuth2PasswordBearer instrui o Swagger a exibir o botão "Authorize",
+# permitindo testar os endpoints protegidos diretamente na documentação.
+
+async def get_current_user(
+        token: str = Depends(oauth2_scheme),
+        db: AsyncSession = Depends(get_db)
+):
+    
+    """
+    Dependência de autenticação injetada nos endpoints protegidos.
+    Extrai e valida o token JWT da requisição, busca o usuário no banco
+    e o retorna para o endpoint. Se o token for inválido, estiver expirado
+    ou o usuário não existir, bloqueia o acesso com erro 401 automaticamente,
+    sem precisar repetir essa lógica em cada endpoint protegido.
+    """
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Credenciais inválidas ou token expirado.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+    # Decodifica o token e extrai o email do usuário.
+    payload = decode_access_token(token)
+    if payload is None:
+        raise credentials_exception
+    
+    # O campo "sub" é a convenção JWT para identificar o dono do token.
+    email: str | None = payload.get("sub")
+    if email is None:
+        raise credentials_exception
+    
+    # Busca o usuário no banco pelo email extraído do token.
+    from app.db.models import User
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise credentials_exception
+    
+    return user
