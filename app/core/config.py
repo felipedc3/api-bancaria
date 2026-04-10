@@ -4,7 +4,7 @@ Utiliza pydantic-settings para gerenciar variáveis de ambiente
 de forma tipada e segura. evitando erros de configuração em tempo de execução.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
@@ -24,12 +24,13 @@ class Settings(BaseSettings):
     de banco de dados não bloqueiem o servidor enquanto aguardam resposta.
     """
 
-    SECRET_KEY: str = "digite-uma-chave-secreta"
+    SECRET_KEY: str = ""
     """
     Chave secreta usada para assinar os tokens JWT.
     Essa assinatura garante que o token não foi adulterado pelo cliente.
     Em produção, deve ser uma string longa e aleatória armazenada no .env,
     pois se essa chave vazar, qualquer pessoa pode gerar tokens válidos.
+    O valor padrão vazio é substituído automaticamente pela variável do .env.
     """
 
     ALGORITHM: str = "HS256"
@@ -48,6 +49,11 @@ class Settings(BaseSettings):
     segurança e experiência do usuário.
     """
 
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf=8")
+    # Configuração do pydantic-settings para ler as variáveis do arquivo .env.
+    # O encoding utf-8 garante que caracteres especiais sejam lidos corretamente
+
+
 
 settings = Settings()
 """
@@ -55,3 +61,4 @@ Instância global das configurações, importada pelos demais módulos.
 Ao instanciar uma única vez aqui, garantimos que toda a aplicação
 compartilhe a mesma configuração, evitando inconsistências.
 """
+

@@ -7,10 +7,10 @@ Responsável por duas funções essenciais de segurança:
 
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
-from passlib.context import CryptContext
+import bcrypt
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -18,7 +18,7 @@ from sqlalchemy.future import select
 from app.core.config import settings
 from app.db.database import get_db
 
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 """
 Contexto de criptografia configurado com o algoritmo bcrypt.
 O bcrypt é o algoritmo recomendado para hash de senhas pois, ao contrário
@@ -35,7 +35,7 @@ def hash_password(password: str) -> str:
     Assim, mesmo que o banco seja comprometido, as senhas dos usuários
     permanecem protegidas pois o hash é irreversível
     """
-    return password_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 def verify_password(plain_password: str, hased_password: str) -> bool:
     """
@@ -44,7 +44,7 @@ def verify_password(plain_password: str, hased_password: str) -> bool:
     e compara os resultados. Retorna True se a senha estiver correta,
     False caso contrário.
     """
-    return password_context.verify(plain_password, hased_password)
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hased_password.encode("utf-8"))
 
 
 def create_access_token(data: dict) -> str:
@@ -82,47 +82,37 @@ def decode_access_token(token: str) -> dict | None:
     except JWTError:
         return None
     
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = HTTPBearer()
 # Define o endpoint onde o token será obtido.
 # O OAuth2PasswordBearer instrui o Swagger a exibir o botão "Authorize",
 # permitindo testar os endpoints protegidos diretamente na documentação.
 
 async def get_current_user(
-        token: str = Depends(oauth2_scheme),
-        db: AsyncSession = Depends(get_db)
+    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
 ):
+    # Extrai o token das credenciais recebidas no cabeçalho Authorization.
+    token = credentials.credentials
     
-    """
-    Dependência de autenticação injetada nos endpoints protegidos.
-    Extrai e valida o token JWT da requisição, busca o usuário no banco
-    e o retorna para o endpoint. Se o token for inválido, estiver expirado
-    ou o usuário não existir, bloqueia o acesso com erro 401 automaticamente,
-    sem precisar repetir essa lógica em cada endpoint protegido.
-    """
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Credenciais inválidas ou token expirado.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-
-    # Decodifica o token e extrai o email do usuário.
     payload = decode_access_token(token)
     if payload is None:
         raise credentials_exception
-    
-    # O campo "sub" é a convenção JWT para identificar o dono do token.
+
     email: str | None = payload.get("sub")
     if email is None:
         raise credentials_exception
-    
-    # Busca o usuário no banco pelo email extraído do token.
+
     from app.db.models import User
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
     if user is None:
         raise credentials_exception
-    
+
     return user

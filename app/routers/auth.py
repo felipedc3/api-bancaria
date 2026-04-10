@@ -56,7 +56,7 @@ async def register(user_data: CreateUser, db: AsyncSession = Depends(get_db)):
     # O flush() acima garante que o new_user já tem um id gerado
     # pelo banco antes de criar a conta vinculada a ele.
 
-    new_account = Account(user_data = new_user.id)
+    new_account = Account(user_id = new_user.id)
     db.add(new_account)
 
 
