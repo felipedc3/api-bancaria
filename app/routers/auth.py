@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 
 from app.db.database import get_db
 from app.db.models import User, Account
-from app.schemas.user import CreateUser, UserResponse
+from app.schemas.user import CreateUser, UserResponse, LoginUser
 from app.core.security import hash_password, verify_password, create_access_token
 
 
@@ -69,7 +69,7 @@ async def register(user_data: CreateUser, db: AsyncSession = Depends(get_db)):
     return new_user
 
 @router.post("/login", status_code=status.HTTP_200_OK)
-async def login(user_data: CreateUser, db: AsyncSession = Depends(get_db)):
+async def login(user_data: LoginUser, db: AsyncSession = Depends(get_db)):
     """
     Autentica o usuário e retorna um token JWT.
     Verifica se o email existe e se a senha está correta.
