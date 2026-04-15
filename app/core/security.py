@@ -5,7 +5,7 @@ Responsável por duas funções essenciais de segurança:
 2. Geração e validação de tokens JWT: controla o acesso autenticado à API.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 import bcrypt
 
@@ -58,7 +58,7 @@ def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     # Fazemos uma cópia para não modificar o dicionário original recebido.
     
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     # Calcula o momento exato em que o token deixará de ser válido.
     # Usar UTC garante consistência independente do fuso horário do servidor.
     
@@ -82,7 +82,7 @@ def decode_access_token(token: str) -> dict | None:
     except JWTError:
         return None
     
-oauth2_scheme = HTTPBearer()
+oauth2_scheme = HTTPBearer(auto_error=False)
 # Define o endpoint onde o token será obtido.
 # O OAuth2PasswordBearer instrui o Swagger a exibir o botão "Authorize",
 # permitindo testar os endpoints protegidos diretamente na documentação.
@@ -92,6 +92,12 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db)
 ):
     # Extrai o token das credenciais recebidas no cabeçalho Authorization.
+    # Se não houver credenciais, bloqueia o acesso com erro 403.
+    if credentials is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Credenciais não fornecidas."
+            )   
     token = credentials.credentials
     
     credentials_exception = HTTPException(
