@@ -172,8 +172,8 @@ Authorization: Bearer seu-token-aqui
 ```json
 POST /auth/register
 {
-  "name": "Felipe",
-  "email": "felipe@email.com",
+  "name": "SeuNome",
+  "email": "seuemail@email.com",
   "password": "123456"
 }
 ```
@@ -182,7 +182,7 @@ POST /auth/register
 ```json
 POST /auth/login
 {
-  "email": "felipe@email.com",
+  "email": "seuemail@email.com",
   "password": "123456"
 }
 ```
