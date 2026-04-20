@@ -13,7 +13,7 @@ from sqlalchemy.future import select
 from app.db.database import get_db
 from app.db.models import User, Account, Transaction
 from app.db.enums import TransactionType
-from app.schemas.transaction import CreateTransaction, TransactionResponse
+from app.schemas.transaction import CreateTransaction, TransactionResponse, CreateTransfer
 from app.core.security import get_current_user
 
 router = APIRouter(prefix="/transactions", tags=["Transações"])
@@ -127,4 +127,77 @@ async def get_statement(
     )
     transactions = result.scalars().all()
 
-    return transactions       
+    return transactions
+
+
+@router.post("/transfer", response_model=list[TransactionResponse], status_code=status.HTTP_201_CREATED)
+async def transfer(
+    transaction_data: CreateTransfer,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Realiza uma transferência entre duas contas.
+    Valida se a conta de destino existe e se o saldo da conta de origem
+    é suficiente antes de processar a transferência.
+    As duas transações — débito na origem e crédito no destino — são
+    salvas atomicamente, ou seja, se uma falhar, nenhuma é persistida,
+    garantindo que o dinheiro nunca seja perdido ou duplicado.
+    Retorna as duas transações geradas: o débito e o crédito.
+    """
+
+    # Busca a conta de origem do usuário autenticado.
+    source_account = await get_account_or_404(current_user, db)
+
+    # Garante que o usuário não está transferindo para a própria conta.
+    if source_account.id == transaction_data.target_account_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível transferir para a própria conta."
+        )
+    
+    # Busca a conta de destino pelo id informado.
+    result = await db.execute(
+        select(Account).where(Account.id == transaction_data.target_account_id)
+    )
+    target_account = result.scalar_one_or_none()
+
+
+    # Valida se a conta de origem tem saldo suficiente.
+    if target_account is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta de destino não encontrada."
+        )
+    
+
+    # Debita o valor da conta de origem.
+    source_account.balance = source_account.balance - transaction_data.amount
+
+    # Credita o valor na conta de destino.
+    target_account.balance = target_account.balance + transaction_data.amount
+
+    # Registra a transação de débito na conta de origem.
+    debit_transaction = Transaction(
+        type=TransactionType.transferencia,
+        amount=transaction_data.amount,
+        account_id=source_account.id
+    )
+
+    # Registra a transação de crédito na conta de destino.
+    credit_transaction = Transaction(
+        type=TransactionType.transferencia,
+        amount=transaction_data.amount,
+        account_id=target_account.id
+    )
+
+    db.add(debit_transaction)
+    db.add(credit_transaction)
+
+    # O commit salva todas as operações atomicamente.
+    # Se qualquer operação falhar, o banco reverte tudo automaticamente.
+    await db.commit()
+    await db.refresh(debit_transaction)
+    await db.refresh(credit_transaction)
+
+    return [debit_transaction, credit_transaction]

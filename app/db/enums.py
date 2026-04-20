@@ -16,3 +16,4 @@ class TransactionType(enum.Enum):
     """
     deposito = "deposito"
     saque = "saque"
+    transferencia = "transferencia"

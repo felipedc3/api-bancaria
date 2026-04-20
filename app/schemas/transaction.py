@@ -48,3 +48,28 @@ class TransactionResponse(BaseModel):
     account_id: int
 
     model_config = {"from_attributes": True}
+
+class CreateTransfer(BaseModel):
+    """
+    Schema de entrada para criação de uma transferência entre contas.
+    Exige o id da conta de destino e o valor a ser transferido.
+    O field_validator garante que valores negativos ou zerados sejam
+    rejeitados antes mesmo de chegar na lógica da aplicação,
+    seguindo o mesmo padrão de validação dos demais schemas de transação.
+    """
+    target_account_id: int
+    amount: float
+
+    @field_validator("amount")
+    @classmethod
+    
+    def amount_must_be_positive(cls, value: float) -> float:
+        """
+        Valida que o valor da transferência seja positivo.
+        Rejeitar valores negativos ou zero aqui, na entrada dos dados,
+        é mais seguro e eficiente do que validar dentro do endpoint,
+        pois a requisição é barrada antes de qualquer processamento.
+        """
+        if value <= 0:
+            raise ValueError("O valor da transferência deve ser maior que zero.")
+        return value
