@@ -181,3 +181,126 @@ async def test_unauthorized_access(client: AsyncClient):
     response = await client.get("/transactions/statement")
 
     assert response.status_code == 403
+
+async def create_second_user(client: AsyncClient) -> int:
+    """
+    Função auxiliar que cadastra um segundo usuário e retorna o id da sua conta.
+    Usada nos testes de transferência para simular uma conta de destino.
+    """
+    await client.post("/auth/register", json={
+        "name": "João",
+        "email": "joao@email.com",
+        "password": "123456"
+    })
+
+    response = await client.post("/auth/login", json={
+        "email": "joao@email.com",
+        "password": "123456"
+    })
+
+    token = response.json()["access_token"]
+
+    response = await client.get(
+        "/accounts/me",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    return response.json()["id"]
+
+@pytest.mark.asyncio
+async def test_transfer_success(client: AsyncClient):
+    """
+    Testa uma transferência com saldo suficiente.
+    Verifica se o endpoint retorna status 201 e as duas transações geradas,
+    confirmando que o débito e o crédito foram registrados corretamente.
+    """
+    token = await create_and_login(client)
+    target_account_id = await create_second_user(client)
+
+    await client.post(
+        "/transactions/deposit",
+        json={"amount": 500.00},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    response = await client.post(
+        "/transactions/transfer",
+        json={"target_account_id": target_account_id, "amount": 200.00},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["type"] == "transferencia"
+    assert data[1]["type"] == "transferencia"
+    assert data[0]["amount"] == 200.00
+    assert data[1]["amount"] == 200.00
+
+@pytest.mark.asyncio
+async def test_transfer_insufficient_balance(client: AsyncClient):
+    """
+    Testa uma transferência com saldo insuficiente.
+    Verifica se o endpoint retorna status 400 e a mensagem de erro correta,
+    impedindo que o saldo fique negativo.
+    """
+    token = await create_and_login(client)
+    target_account_id = await create_second_user(client)
+
+    response = await client.post(
+        "/transactions/transfer",
+        json={"target_account_id": target_account_id, "amount": 500.00},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 400
+
+@pytest.mark.asyncio
+async def test_transfer_to_same_account(client: AsyncClient):
+    """
+    Testa uma transferência para a própria conta.
+    Verifica se o endpoint retorna status 400 e a mensagem de erro correta,
+    impedindo que o usuário transfira para si mesmo.
+    """
+
+    token = await create_and_login(client)
+
+    response = await client.get(
+        "/accounts/me",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    own_account_id = response.json()["id"]
+
+    response = await client.post(
+        "/transactions/transfer",
+        json={"target_account_id": own_account_id, "amount": 100.00},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Não é possível transferir para a própria conta."
+
+@pytest.mark.asyncio
+async def test_transfer_to_noexistent_account(client: AsyncClient):
+    """
+    Testa uma transferência para uma conta inexistente.
+    Verifica se o endpoint retorna status 404 e a mensagem de erro correta,
+    impedindo transferências para contas que não existem.
+    """
+    token = await create_and_login(client)
+
+    await client.post(
+        "/transactions/deposit",
+        json={"amount": 500.00},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    response = await client.post(
+        "/transactions/transfer",
+        json={"target_account_id": 9999, "amount": 100.00},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Conta de destino não encontrada."
+

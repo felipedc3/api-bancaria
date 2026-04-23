@@ -149,11 +149,32 @@ async def transfer(
     # Busca a conta de origem do usuário autenticado.
     source_account = await get_account_or_404(current_user, db)
 
+    await db.refresh(source_account)
+
     # Garante que o usuário não está transferindo para a própria conta.
+    # Valida se a conta de origem tem saldo suficiente.
+
     if source_account.id == transaction_data.target_account_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Não é possível transferir para a própria conta."
+        )
+
+    result = await db.execute(
+        select(Account).where(Account.id == transaction_data.target_account_id)
+    )
+    target_account = result.scalar_one_or_none()
+
+    if target_account is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta de destino não encontrada."
+        )
+
+    if source_account.balance < transaction_data.amount:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Saldo insuficiente para realizar a transferência."
         )
     
     # Busca a conta de destino pelo id informado.
@@ -201,3 +222,5 @@ async def transfer(
     await db.refresh(credit_transaction)
 
     return [debit_transaction, credit_transaction]
+
+
