@@ -25,7 +25,6 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
-    phone: Mapped[str | None] = mapped_column(String, nullable=True)
     # O email é usado como identificador único do usuário no login.
     # O índice (index=True) acelera as buscas por email no banco de dados.
 
