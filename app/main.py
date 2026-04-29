@@ -11,6 +11,9 @@ from fastapi import FastAPI
 from app.db.database import engine, Base
 from app.routers import auth, accounts, transactions
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -29,12 +32,27 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="API Bancária",
     description="API RESTful assíncrona para gerenciamento de operações bancárias.",
+    version="1.0.0",
     lifespan=lifespan
 )
 
+# Serve os arquivos estáticos da pasta static.
+# Isso permite que o frontend acesse CSS, JS e outros arquivos
+# diretamente pelo navegador sem precisar de um servidor separado.
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Registra os routers na aplicação.
 # Cada router traz seus próprios endpoints e prefixos definidos anteriormente.
 app.include_router(auth.router)
 app.include_router(accounts.router)
 app.include_router(transactions.router)
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    """
+    Redireciona a rota raiz para o frontend.
+    O include_in_schema=False oculta essa rota da documentação
+    do Swagger pois ela serve apenas o arquivo HTML.
+    """
+    return FileResponse("app/static/index.html")

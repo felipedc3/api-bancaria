@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco Digital</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+
+            <h1> Banco Digital </h1>
+            <p> Sua conta bancária na palma da mão </p>
+
+            <!-- Abas de Login e Cadastro -->
+             <div class="auth-tabs">
+                <button class="auth-tab active" onclick="showTab('login')">
+                    Entrar
+                </button>
+                <button class="auth-tab" onclick="showTab('register')">
+                    Cadastrar
+                </button>
+             </div>
+
+             <!-- Alerta de erro/sucesso -->
+              <div id="alert" class="alert"></div>
+
+              <!-- Formulário de Login -->
+               <div id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input
+                        type="email"
+                        id="login-email"
+                        placeholder="você@email.com"
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Senha</label>
+                    <input
+                        type="password"
+                        id="login-password"
+                        placeholder="Sua senha"
+                    />
+                </div>
+                <button class="btn btn-primary" onclick="login()">
+                    Entrar
+                </button>
+               </div>
+
+               <!-- Formulário de Cadastro -->
+                <div id="register-form" style="display: none;">
+                    <div class="form-group">
+                        <label for="register-name">Nome completo</label>
+                        <input
+                            type="text"
+                            id="register-name"
+                            placeholder="Seu nome"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input
+                            type="email"
+                            id="register-email"
+                            placeholder="você@email.com"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Senha</label>
+                        <input
+                            type="password"
+                            id="register-password"
+                            placeholder="Crie sua senha"
+                        />
+                    </div>
+                    <button class="btn btn-primary" onclick="register()">
+                        Criar conta
+                    </button>
+                </div>
+        </div>
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+</body>
+</html>

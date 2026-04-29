@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco Digital - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+
+        <!-- Navbar -->
+        <nav class="navbar">
+            <h1> Banco Digital</h1>
+            <div class="navbar-right">
+                <span id="user-name">Olá, ...</span>
+            </div>
+        </nav>
+
+        <!-- Conteúdo principal -->
+         <div class="dashboard-content">
+
+            <!-- Card de Saldo -->
+             <div class="card balance-card">
+                <div>
+                    <h2>Saldo disponível</h2>
+                    <div class="balance-amount" id="balance">R$ --</div>
+                </div>
+                <div class="balance-info">
+                    <div>Conta nº <span id="account-id">--</span></div>
+                </div>
+             </div>
+
+            <!-- Card de Depósito -->
+             <div class="card">
+                <h2> Depósito</h2>
+                <div class="transaction-form">
+                    <div class="form-group">
+                        <label for="deposit-amount">Valor</label>
+                        <input
+                            type="number"
+                            id="deposit-amount"
+                            placeholder="R$ 0,00"
+                            min="0.01"
+                            step="0.01"
+                        />
+                    </div>
+                    <button class="btn btn success" onclick="deposit()">
+                        Depositar
+                    </button>
+                </div>
+             </div>
+
+            <!-- Card de Saque -->
+             <div class="card">
+                <h2> Saque</h2>
+                <div class="transaction-form">
+                    <div class="form-group">
+                        <label for="withdraw-amount">Valor</label>
+                        <input
+                            type="number"
+                            id="withdraw-amount"
+                            placeholder="R$ 0,00"
+                            min="0.01"
+                            step="0.01"
+                        />
+                    </div>
+                    <button class="btn btn-danger" onclick="withdraw()">
+                        Sacar
+                    </button>
+                </div>
+             </div>
+            
+            <!-- Card de Transferência -->
+             <div class="card transfer-card">
+                <h2> Transferência</h2>
+                <div class="transaction-form">
+                    <div class="form-group">
+                        <label for="transfer-account">Conta de destino</label>
+                        <input
+                            type="number"
+                            id="transfer-account"
+                            placeholder="Número da conta"
+                            min="1"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="transfer-amount">Valor</label>
+                        <input
+                            type="number"
+                            id="transfer-amount"
+                            placeholder="R$ 0,00"
+                            min="0.01"
+                            step="0.1"
+                        />
+                    </div>
+                    <button class="btn btn-warning" onclick="transfer()">
+                        Transferir
+                    </button>
+                </div>
+             </div>
+
+            <!-- Card de Extrato -->
+             <div class="card statement-card">
+                <h2> Extrato</h2>
+                <ul class="statement-list" id="statement-list">
+                    <li class="empty-statement">Carregando extrato...</li>
+                </ul>
+             </div>
+
+         </div>
+    </div>
+
+    <script sre="/static/js/dashboard.js"></script>
+</body>
+</html>
