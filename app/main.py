@@ -10,9 +10,12 @@ from fastapi import FastAPI
 
 from app.db.database import engine, Base
 from app.routers import auth, accounts, transactions
+from app.core.config import settings
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+
+print("SECRET_KEY carregada:", settings.SECRET_KEY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

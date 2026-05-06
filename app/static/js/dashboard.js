@@ -2,6 +2,8 @@
 
 const API_URL = "http://127.0.0.1:8000";
 
+let loadingStatement = false;
+
 /**
  * Retorna o token JWT salvo no localStorage.
  * Se não houver token, redireciona para o login,
@@ -85,20 +87,39 @@ async function loadAccount() {
  * cada transação como um item da lista.
  */
 async function loadStatement() {
-    const token = loadStatement();
-    if (!token) return;
+    if (loadingStatement) return;
+    loadingStatement = true;
+
+    const token = getToken();
+    if (!token) {
+        loadingStatement = false
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/transactions/statement`, {
             headers: {"Authorization": `Bearer ${token}` }
         });
 
+        if (response.status === 401 || response.status === 403) {
+            loadingStatement = false;
+            logout();
+            return;
+        }
+
         const transactions = await response.json();
         const list = document.getElementById("statement-list");
+
+        if (!Array.isArray(transactions)) {
+            console.error("Resposta inválida:", transactions);
+            loadingStatement = false;
+            return;
+        }
 
         //Se não houver transa~]oes, exibe uma mensagem informativa.
         if (transactions.length === 0) {
             list.innerHTML = `<li class="empty-statement">Nenhuma transação encontrada`;
+            loadingStatement = false;
             return;
         }
 
@@ -136,6 +157,8 @@ async function loadStatement() {
     } catch (error) {
         console.error("Erro ao carregar extrato:", error);
     }
+
+    loadingStatement = false
 }
 
 /**
@@ -166,6 +189,11 @@ async function deposit() {
             // Atualiza o saldo e extrato após o depósito.
             await loadAccount();
             await loadStatement();
+        } 
+        
+        if (response.status === 401) {
+            logout();
+            return;
         } else {
             const data = await response.json();
             alert(data.detail);
@@ -261,5 +289,8 @@ async function transfer() {
 }
 
 // Carrega os dados da conta e extrato assim que a página abre.
-loadAccount();
-loadStatement();
+window.onload = () => {
+    loadAccount();
+    loadStatement();
+};
+
